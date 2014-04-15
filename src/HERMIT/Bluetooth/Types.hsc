@@ -4,10 +4,13 @@ module HERMIT.Bluetooth.Types where
 #if defined(mingw32_HOST_OS)
 #include <windows.h>
 #else
+#include <sys/socket.h>
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
+#include <bluetooth/rfcomm.h>
+#include "bdaddr.h"
 #endif
 #include <stddef.h>
 
@@ -22,6 +25,7 @@ import Data.Typeable
 import Foreign
 import Foreign.C
 import Numeric
+import Network.Socket
 
 #if !defined(mingw32_HOST_OS)
 foreign import ccall unsafe "strerror" strerror
@@ -68,6 +72,50 @@ instance Storable BluetoothAddr where
 
 #if defined(mingw32_HOST_OS)
 #else
+packSocketTypeOrThrow :: String -> SocketType -> IO CInt
+packSocketTypeOrThrow caller stype = maybe err return (packSocketType' stype)
+    where err = ioError . userError . concat $ ["Network.Socket.", caller, ": ", "socket type ", show stype, " unsupported on this system"]
+
+packSocketType' :: SocketType -> Maybe CInt
+packSocketType' stype = case Just stype of
+#ifdef SOCK_STREAM
+    Just Stream -> Just (#const SOCK_STREAM)
+#endif
+    _ -> Nothing
+
+foreign import ccall safe "bdaddr_any"
+    c_bdaddr_any :: IO (Ptr BDAddr)
+
+newtype SockAddrRFCOMM = SockAddrRFCOMM PortNumber deriving (Eq, Ord, Typeable)
+type CSaFamily = (#type sa_family_t)
+-- type CBDAddr = (#type bdaddr_t)
+
+sizeOfSockAddrRFCOMM :: Int
+sizeOfSockAddrRFCOMM = (#const sizeof(struct sockaddr_rc))
+
+withSockAddrRFCOMM :: SockAddrRFCOMM -> (Ptr SockAddrRFCOMM -> Int -> IO a) -> IO a
+withSockAddrRFCOMM addr f = let sz = sizeOfSockAddrRFCOMM in
+    allocaBytes sz $ \ p -> pokeSockAddrRFCOMM p addr >> f p sz
+
+pokeSockAddrRFCOMM :: Ptr a -> SockAddrRFCOMM -> IO ()
+pokeSockAddrRFCOMM p (SockAddrRFCOMM (PortNum port)) = do
+    (#poke struct sockaddr_rc, rc_family) p ((#const AF_BLUETOOTH) :: CSaFamily)
+    pba <- c_bdaddr_any
+    bdaddrAny <- peek pba
+    (#poke struct sockaddr_rc, rc_bdaddr) p bdaddrAny
+    (#poke struct sockaddr_rc, rc_channel) p port
+
+peekSockAddrRFCOMM :: Ptr SockAddrRFCOMM -> IO SockAddrRFCOMM
+peekSockAddrRFCOMM p = fmap SockAddrRFCOMM $ (#peek struct sockaddr_rc, rc_channel) p
+
+newtype BDAddr = BDAddr (Ptr CUChar)
+
+instance Storable BDAddr where
+    sizeOf _ = (#const sizeof(bdaddr_t))
+    alignment _ = alignment (undefined :: Word64)
+    peek p = fmap BDAddr $ (#peek bdaddr_t, b) p
+    poke p (BDAddr addr) = (#poke bdaddr_t, b) p addr 
+
 type SDPSession = Ptr SDPSessionT
 
 data SDPSessionT = SDPSessionT

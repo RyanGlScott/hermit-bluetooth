@@ -2,7 +2,6 @@
 module Main where
 
 import HERMIT.Bluetooth.Adapter
-import HERMIT.Bluetooth.Info
 import Network.Socket
 
 port :: Num a => a
@@ -12,15 +11,21 @@ main :: IO ()
 main = defaultAdapter >>= \da -> case da of
             Nothing -> putStrLn "Error: cannot find Bluetooth adapter"
             Just _ -> do
+                putStrLn "sdp_register_service()"
                 sdpSession <- registerSDPService 0 port
-                handshakeSock <- socket AF_BLUETOOTH Stream bTPROTO_RFCOMM
-                bind handshakeSock $ SockAddrInet port iNADDR_ANY
-                listen handshakeSock 1
-                (connSock, _) <- accept handshakeSock
+                putStrLn "socket()"
+                handshakeSock <- socketRFCOMM
+                putStrLn "bind()"
+                bindRFCOMM handshakeSock $ SockAddrRFCOMM port
+                putStrLn "listen()"
+                listenRFCOMM handshakeSock 1
+                putStrLn "accept()"
+                (connSock, _) <- acceptRFCOMM handshakeSock
                 hermitLoop connSock sdpSession
 
 hermitLoop :: Socket -> SDPSession -> IO ()
 hermitLoop sock sess = do
+    putStrLn "recv()"
     mm <- recv sock 4092
     case mm of
          [] -> do
@@ -28,6 +33,7 @@ hermitLoop sock sess = do
              closeSDPSession sess
          message -> do
              let !response = hermitMagic message
+             putStrLn "send()"
              _ <- send sock response
              hermitLoop sock sess
 

@@ -20,11 +20,11 @@ cabal-version:       >=1.14
 
 library
   exposed-modules:      HERMIT.Bluetooth.Adapter
-                        HERMIT.Bluetooth.Info
   other-modules:        HERMIT.Bluetooth.Types
   hs-source-dirs:       src
   build-depends:        base >= 4 && < 5,
                         bytestring,
+                        ghc >= 7.6,
                         network
   if os(windows)
     build-depends:      Win32
@@ -36,7 +36,8 @@ library
   include-dirs:         src/HERMIT/Bluetooth/
                         /usr/include/glib-2.0/
                         /usr/lib/glib-2.0/include
-  c-sources:            src/HERMIT/Bluetooth/sdp_register_service.c
+  c-sources:            src/HERMIT/Bluetooth/bdaddr.c
+                        src/HERMIT/Bluetooth/sdp_register_service.c
   ghc-options:          -Wall
   
 executable hermit-bluetooth

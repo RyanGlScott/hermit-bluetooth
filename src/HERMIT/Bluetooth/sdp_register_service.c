@@ -45,8 +45,8 @@ const uint32_t UUID_LIST[NUM_UUIDS][NUM_UUID_WORDS] = {
  *
  */
 sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfcomm_channel) {
-    const uint32_t *const svc_uuid_int = UUID_LIST[uuid_index];
-    const char *service_name = "hermit-bluetooth";
+    const uint32_t svc_uuid_int[4] = { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F }; //UUID_LIST[uuid_index];
+    const char *service_name = "Armatus Bluetooth server";
     const char *svc_dsc = "A HERMIT server that interfaces with the Armatus Android app";
     const char *service_prov = "Armatus";
 
@@ -65,7 +65,7 @@ sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfco
     sdp_session_t *session = 0;
 
     // set the general service ID
-    sdp_uuid128_create(&svc_uuid, svc_uuid_int);
+    sdp_uuid128_create(&svc_uuid, &svc_uuid_int);
     sdp_set_service_id(&record, svc_uuid);
 
     char str[256] = "";
