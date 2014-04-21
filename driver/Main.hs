@@ -16,11 +16,11 @@ main = defaultAdapter >>= \da -> case da of
                 putStrLn "socket()"
                 handshakeSock <- socketRFCOMM
                 putStrLn "bind()"
-                bindRFCOMM handshakeSock $ SockAddrRFCOMM port
+                bindRFCOMM handshakeSock port
                 putStrLn "listen()"
                 listenRFCOMM handshakeSock 1
                 putStrLn "accept()"
-                (connSock, _) <- acceptRFCOMM handshakeSock
+                connSock <- acceptRFCOMM handshakeSock
                 hermitLoop connSock sdpSession
 
 hermitLoop :: Socket -> SDPSession -> IO ()

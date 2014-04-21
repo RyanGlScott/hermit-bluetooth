@@ -36,8 +36,7 @@ library
   include-dirs:         src/HERMIT/Bluetooth/
                         /usr/include/glib-2.0/
                         /usr/lib/glib-2.0/include
-  c-sources:            src/HERMIT/Bluetooth/bdaddr.c
-                        src/HERMIT/Bluetooth/sdp_register_service.c
+  c-sources:            src/HERMIT/Bluetooth/bluez_utils.c
   ghc-options:          -Wall
   
 executable hermit-bluetooth
