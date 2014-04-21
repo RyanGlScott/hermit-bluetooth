@@ -10,7 +10,7 @@ module HERMIT.Bluetooth.Types where
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
 #include <bluetooth/rfcomm.h>
-#include "bdaddr.h"
+#include "bluez_utils.h"
 #endif
 #include <stddef.h>
 
@@ -83,9 +83,6 @@ packSocketType' stype = case Just stype of
 #endif
     _ -> Nothing
 
-foreign import ccall safe "bdaddr_any"
-    c_bdaddr_any :: IO (Ptr BDAddr)
-
 newtype SockAddrRFCOMM = SockAddrRFCOMM PortNumber deriving (Eq, Ord, Typeable)
 type CSaFamily = (#type sa_family_t)
 -- type CBDAddr = (#type bdaddr_t)
@@ -106,15 +103,7 @@ pokeSockAddrRFCOMM p (SockAddrRFCOMM (PortNum port)) = do
     (#poke struct sockaddr_rc, rc_channel) p port
 
 peekSockAddrRFCOMM :: Ptr SockAddrRFCOMM -> IO SockAddrRFCOMM
-peekSockAddrRFCOMM p = fmap SockAddrRFCOMM $ (#peek struct sockaddr_rc, rc_channel) p
-
-newtype BDAddr = BDAddr (Ptr CUChar)
-
-instance Storable BDAddr where
-    sizeOf _ = (#const sizeof(bdaddr_t))
-    alignment _ = alignment (undefined :: Word64)
-    peek p = fmap BDAddr $ (#peek bdaddr_t, b) p
-    poke p (BDAddr addr) = (#poke bdaddr_t, b) p addr 
+peekSockAddrRFCOMM p = fmap SockAddrRFCOMM $ (#peek struct sockaddr_rc, rc_channel) p 
 
 type SDPSession = Ptr SDPSessionT
 

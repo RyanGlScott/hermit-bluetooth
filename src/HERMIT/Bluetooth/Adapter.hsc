@@ -25,7 +25,7 @@ module HERMIT.Bluetooth.Adapter (
 #include <bluetooth/hci.h>
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
-#include "sdp_register_service.h"
+#include "bluez_utils.h"
 #endif
 #include <stddef.h>
 
@@ -64,17 +64,17 @@ foreign import ccall unsafe "sdp_register_service"
 foreign import ccall unsafe "sdp_close"
     sdp_close :: SDPSession -> IO CInt
 
-foreign import ccall unsafe "socket"
-    c_socket :: CInt -> CInt -> CInt -> IO CInt
+foreign import ccall unsafe "socket_rfcomm"
+    socket_rfcomm :: IO CInt
 
-foreign import ccall unsafe "bind"
-    c_bind :: CInt -> Ptr SockAddrRFCOMM -> CInt -> IO CInt
+foreign import ccall unsafe "bind_rfcomm"
+    bind_rfcomm :: CInt -> CUChar -> IO CInt
 
-foreign import ccall unsafe "listen"
-    c_listen :: CInt -> CInt -> IO CInt
+foreign import ccall unsafe "listen_rfcomm"
+    listen_rfcomm :: CInt -> CInt -> IO CInt
 
-foreign import ccall unsafe "accept"
-    c_accept :: CInt -> Ptr SockAddrRFCOMM -> Ptr CUInt -> IO CInt
+foreign import ccall unsafe "accept_rfcomm"
+    accept_rfcomm :: CInt -> IO CInt
 #endif
 
 #if !defined(mingw32_HOST_OS)
@@ -150,10 +150,9 @@ closeSDPSession = M.void . sdp_close
 socketRFCOMM :: IO Socket
 socketRFCOMM = do
     c_stype <- packSocketTypeOrThrow "socketRFCOMM" Stream
-    fd <- throwSocketErrorIfMinus1 "socketRFCOMM" $ c_socket (packFamily AF_BLUETOOTH) c_stype bTPROTO_RFCOMM
-    print fd
-    socket_status <- newMVar NotConnected
-    return $ MkSocket fd AF_BLUETOOTH Stream bTPROTO_RFCOMM socket_status
+    fd <- throwSocketErrorIfMinus1 "socketRFCOMM" $ socket_rfcomm
+    socketStatus <- newMVar NotConnected
+    return $ MkSocket fd AF_BLUETOOTH Stream bTPROTO_RFCOMM socketStatus
 
 bindRFCOMM :: Socket -> SockAddrRFCOMM -> IO ()
 bindRFCOMM (MkSocket s _family _stype _protocol socketStatus) addr = do
