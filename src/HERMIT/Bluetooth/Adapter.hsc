@@ -14,7 +14,6 @@ module HERMIT.Bluetooth.Adapter (
         BluetoothException(..),
         BluetoothAddr(..),
         SDPSession,
-        SockAddrRFCOMM(..)
     ) where
 
 #if defined(mingw32_HOST_OS)
@@ -149,20 +148,19 @@ closeSDPSession = M.void . sdp_close
 
 socketRFCOMM :: IO Socket
 socketRFCOMM = do
-    c_stype <- packSocketTypeOrThrow "socketRFCOMM" Stream
+    _ <- packSocketTypeOrThrow "socketRFCOMM" Stream
     fd <- throwSocketErrorIfMinus1 "socketRFCOMM" $ socket_rfcomm
     socketStatus <- newMVar NotConnected
     return $ MkSocket fd AF_BLUETOOTH Stream bTPROTO_RFCOMM socketStatus
 
-bindRFCOMM :: Socket -> SockAddrRFCOMM -> IO ()
-bindRFCOMM (MkSocket s _family _stype _protocol socketStatus) addr = do
+bindRFCOMM :: Socket -> Int -> IO ()
+bindRFCOMM (MkSocket s _family _stype _protocol socketStatus) port = do
     modifyMVar_ socketStatus $ \ status -> do
         if status /= NotConnected
            then ioError (userError ("bindRFCOMM: can't perform bind on socket in status " ++ show status))
            else do
-               withSockAddrRFCOMM addr $ \ p_addr sz -> do
-                   _ <- throwSocketErrorIfMinus1 "bind" $ c_bind s p_addr $ fromIntegral sz
-                   return Bound
+               _ <- throwSocketErrorIfMinus1 "bind" $ bind_rfcomm s $ fromIntegral port
+               return Bound
 
 throwSocketErrorIfMinus1 :: (Eq a, Num a) => String -> IO a -> IO a
 throwSocketErrorIfMinus1 = throwErrnoIfMinus1
@@ -173,20 +171,16 @@ listenRFCOMM (MkSocket s _family _stype _protocol socketStatus) backlog = do
         if status /= Bound
            then ioError (userError ("listenRFCOMM: can't peform listen on socket in status " ++ show status))
            else do
-               _ <- throwSocketErrorIfMinus1 "listenRFCOMM" (c_listen s (fromIntegral backlog))
+               _ <- throwSocketErrorIfMinus1 "listenRFCOMM" $ listen_rfcomm s $ fromIntegral backlog
                return Listening
 
-acceptRFCOMM :: Socket -> IO (Socket, SockAddrRFCOMM)
+acceptRFCOMM :: Socket -> IO Socket
 acceptRFCOMM (MkSocket s family stype protocol socketStatus) = do
     status <- readMVar socketStatus
     if status /= Listening
        then ioError (userError ("acceptRFCOMM: can't perform accept on socket in status" ++ show status))
        else do
-           let sz = sizeOfSockAddrRFCOMM
-           allocaBytes sz $ \ sockaddr -> do
-               with (fromIntegral sz) $ \ ptr_len -> do
-                   new_sock <- throwSocketErrorIfMinus1 "acceptRFCOMM" $ c_accept s sockaddr ptr_len
-                   addr <- peekSockAddrRFCOMM sockaddr
-                   new_status <- newMVar Connected
-                   return ((MkSocket new_sock family stype protocol new_status), addr)
+           new_sock <- throwSocketErrorIfMinus1 "acceptRFCOMM" $ accept_rfcomm s
+           new_status <- newMVar Connected
+           return $ MkSocket new_sock family stype protocol new_status
 #endif

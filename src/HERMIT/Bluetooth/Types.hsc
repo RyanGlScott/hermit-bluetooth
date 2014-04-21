@@ -83,28 +83,6 @@ packSocketType' stype = case Just stype of
 #endif
     _ -> Nothing
 
-newtype SockAddrRFCOMM = SockAddrRFCOMM PortNumber deriving (Eq, Ord, Typeable)
-type CSaFamily = (#type sa_family_t)
--- type CBDAddr = (#type bdaddr_t)
-
-sizeOfSockAddrRFCOMM :: Int
-sizeOfSockAddrRFCOMM = (#const sizeof(struct sockaddr_rc))
-
-withSockAddrRFCOMM :: SockAddrRFCOMM -> (Ptr SockAddrRFCOMM -> Int -> IO a) -> IO a
-withSockAddrRFCOMM addr f = let sz = sizeOfSockAddrRFCOMM in
-    allocaBytes sz $ \ p -> pokeSockAddrRFCOMM p addr >> f p sz
-
-pokeSockAddrRFCOMM :: Ptr a -> SockAddrRFCOMM -> IO ()
-pokeSockAddrRFCOMM p (SockAddrRFCOMM (PortNum port)) = do
-    (#poke struct sockaddr_rc, rc_family) p ((#const AF_BLUETOOTH) :: CSaFamily)
-    pba <- c_bdaddr_any
-    bdaddrAny <- peek pba
-    (#poke struct sockaddr_rc, rc_bdaddr) p bdaddrAny
-    (#poke struct sockaddr_rc, rc_channel) p port
-
-peekSockAddrRFCOMM :: Ptr SockAddrRFCOMM -> IO SockAddrRFCOMM
-peekSockAddrRFCOMM p = fmap SockAddrRFCOMM $ (#peek struct sockaddr_rc, rc_channel) p 
-
 type SDPSession = Ptr SDPSessionT
 
 data SDPSessionT = SDPSessionT
