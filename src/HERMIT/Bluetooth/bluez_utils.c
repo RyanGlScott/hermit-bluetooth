@@ -5,8 +5,8 @@
 #include <sys/socket.h>
 #include "bluez_utils.h"
 
-const int NUM_UUID_WORDS = 4;
-const int NUM_UUIDS = 7;
+#define NUM_UUID_WORDS 4
+#define NUM_UUIDS 7
 
 /*
  * A 128-bit number used to identify this service. The words are ordered from most to least
@@ -19,23 +19,27 @@ const int NUM_UUIDS = 7;
  * Regardless of the UUID used, it must match the one that the Armatus Android app is searching
  * for.
  */
-// const uint32_t UUID1[NUM_UUID_WORDS] = { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F };
-// const uint32_t UUID1[NUM_UUID_WORDS] = { 0x406A74B7, 0x684858C7, 0xC67A19AA, 0xFC5D47B3 };
-// const uint32_t UUID2[NUM_UUID_WORDS] = { 0x9D18642D, 0x11452C5A, 0xF17774A0, 0x3408FD99 };
-// const uint32_t UUID3[NUM_UUID_WORDS] = { 0x9AE042E4, 0x7B4AF351, 0x38F6CB91, 0x12141D49 };
-// const uint32_t UUID4[NUM_UUID_WORDS] = { 0x04651DA8, 0xEE493645, 0x967D75A4, 0xE43994D0 };
-// const uint32_t UUID5[NUM_UUID_WORDS] = { 0xB1EA91AA, 0x8E44ADD8, 0xEB95DBAB, 0x559B4ABA };
-// const uint32_t UUID6[NUM_UUID_WORDS] = { 0x73DA344D, 0x404FA4D0, 0x7E9138AC, 0x97EE9D0A };
-// const uint32_t UUID7[NUM_UUID_WORDS] = { 0xDFD4145E, 0xB74D8A9C, 0x37C9E481, 0xE0864C56 };
+// #define UUID1 { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F }
+// //const uint32_t UUID1[NUM_UUID_WORDS] = { 0x406A74B7, 0x684858C7, 0xC67A19AA, 0xFC5D47B3 };
+// #define UUID2 { 0x9D18642D, 0x11452C5A, 0xF17774A0, 0x3408FD99 }
+// #define UUID3 { 0x9AE042E4, 0x7B4AF351, 0x38F6CB91, 0x12141D49 }
+// #define UUID4 { 0x04651DA8, 0xEE493645, 0x967D75A4, 0xE43994D0 }
+// #define UUID5 { 0xB1EA91AA, 0x8E44ADD8, 0xEB95DBAB, 0x559B4ABA }
+// #define UUID6 { 0x73DA344D, 0x404FA4D0, 0x7E9138AC, 0x97EE9D0A }
+// #define UUID7 { 0xDFD4145E, 0xB74D8A9C, 0x37C9E481, 0xE0864C56 }
+
+const uint32_t UUID_LIST[NUM_UUIDS][NUM_UUID_WORDS] = {
+    { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F },
+    { 0x9D18642D, 0x11452C5A, 0xF17774A0, 0x3408FD99 },
+    { 0x9AE042E4, 0x7B4AF351, 0x38F6CB91, 0x12141D49 },
+    { 0x04651DA8, 0xEE493645, 0x967D75A4, 0xE43994D0 },
+    { 0xB1EA91AA, 0x8E44ADD8, 0xEB95DBAB, 0x559B4ABA },
+    { 0x73DA344D, 0x404FA4D0, 0x7E9138AC, 0x97EE9D0A },
+    { 0xDFD4145E, 0xB74D8A9C, 0x37C9E481, 0xE0864C56 }
+};
 
 // const uint32_t UUID_LIST[NUM_UUIDS][NUM_UUID_WORDS] = {
-//     { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F },
-//     { 0x9D18642D, 0x11452C5A, 0xF17774A0, 0x3408FD99 },
-//     { 0x9AE042E4, 0x7B4AF351, 0x38F6CB91, 0x12141D49 },
-//     { 0x04651DA8, 0xEE493645, 0x967D75A4, 0xE43994D0 },
-//     { 0xB1EA91AA, 0x8E44ADD8, 0xEB95DBAB, 0x559B4ABA },
-//     { 0x73DA344D, 0x404FA4D0, 0x7E9138AC, 0x97EE9D0A },
-//     { 0xDFD4145E, 0xB74D8A9C, 0x37C9E481, 0xE0864C56 }
+//     UUID1, UUID2, UUID3, UUID4, UUID5, UUID6, UUID7
 // };
 
 /*
@@ -48,7 +52,7 @@ const int NUM_UUIDS = 7;
  *
  */
 sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfcomm_channel) {
-    const uint32_t svc_uuid_int[4] = { 0x01110000, 0x00100000, 0x80000080, 0xFB349B5F }; //UUID_LIST[uuid_index];
+    const uint32_t *svc_uuid_int = UUID_LIST[uuid_index];
     const char *service_name = "Armatus Bluetooth server";
     const char *svc_dsc = "A HERMIT server that interfaces with the Armatus Android app";
     const char *service_prov = "Armatus";
@@ -68,7 +72,7 @@ sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfco
     sdp_session_t *session = 0;
 
     // set the general service ID
-    sdp_uuid128_create(&svc_uuid, &svc_uuid_int);
+    sdp_uuid128_create(&svc_uuid, svc_uuid_int);
     sdp_set_service_id(&record, svc_uuid);
 
     char str[256] = "";

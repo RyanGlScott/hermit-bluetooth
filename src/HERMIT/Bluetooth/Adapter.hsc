@@ -38,7 +38,6 @@ import Control.Concurrent
 import Control.Exception
 import qualified Control.Monad as M
 import Data.IORef
-import Data.Word
 import Foreign
 import Foreign.C
 import Network.Socket
@@ -138,8 +137,8 @@ mAX_CONNECTIONS = 7
 bTPROTO_RFCOMM :: ProtocolNumber
 bTPROTO_RFCOMM = (#const BTPROTO_RFCOMM)
 
-registerSDPService :: Word8 -> Word8 -> IO SDPSession
-registerSDPService ind port = sdp_register_service (CUChar safeInd) (CUChar port)
+registerSDPService :: Int -> Int -> IO SDPSession
+registerSDPService ind port = sdp_register_service (fromIntegral safeInd) (fromIntegral port)
     where safeInd | 0 <= ind && ind < mAX_CONNECTIONS = ind
                   | otherwise = 0
 
