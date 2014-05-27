@@ -1,0 +1,12 @@
+LIBRARY wsa_utils
+EXPORTS
+	wsa_startup
+	socket_rfcomm
+	get_sock_opt
+	bind_rfcomm
+	listen_rfcomm
+	wsa_register_service
+	accept_rfcomm
+	close_rfcomm
+	wsa_delete_service
+	wsa_cleanup
