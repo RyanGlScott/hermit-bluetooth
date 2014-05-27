@@ -1,15 +1,15 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, EmptyDataDecls #-}
 module HERMIT.Bluetooth.Types where
 
--- import Control.Applicative
--- import Control.Exception
--- import Data.ByteString (ByteString)
--- import Data.List
--- import Data.Typeable
--- import Foreign
 import Foreign.C
--- import Numeric
+
 import Network.Socket
+
+#if defined(mingw32_HOST_OS)
+import HERMIT.Bluetooth.Win32
+#elif defined(linux_HOST_OS)
+import HERMIT.Bluetooth.Linux
+#endif
 
 #if defined(mingw32_HOST_OS)
 #include <windows.h>
@@ -17,14 +17,21 @@ import Network.Socket
 #include <sys/socket.h>
 #endif
 
+data Adapter
 #if defined(mingw32_HOST_OS)
-data Adapter = Adapter deriving (Eq, Ord, Show)
-#else
-data Adapter = Adapter CInt CInt deriving (Eq, Ord, Show)
+    = Adapter
+#elif defined(linux_HOST_OS)
+    = Adapter CInt CInt
 #endif
+     deriving (Eq, Ord, Show)
 
+newtype BluetoothService
 #if defined(mingw32_HOST_OS)
-#else
+    = BluetoothService { runService :: LPWSAQUERYSET }
+#elif defined(linux_HOST_OS)
+    = BluetoothService { runService :: Ptr SDPSession }
+#endif
+    
 packSocketTypeOrThrow :: String -> SocketType -> IO CInt
 packSocketTypeOrThrow caller stype = maybe err return (packSocketType' stype)
     where err = ioError . userError . concat $ ["Network.Socket.", caller, ": ", "socket type ", show stype, " unsupported on this system"]
@@ -35,4 +42,3 @@ packSocketType' stype = case Just stype of
     Just Stream -> Just #{const SOCK_STREAM}
 #endif
     _ -> Nothing
-#endif

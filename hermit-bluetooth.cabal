@@ -3,24 +3,26 @@ name:                hermit-bluetooth
 -- The package version. See the Haskell package versioning policy (PVP)
 -- for standards guiding when and how versions should be incremented.
 -- http://www.haskell.org/haskellwiki/Package_versioning_policy
--- PVP summary:      +-+------- breaking API changes
---                   | | +----- non-breaking API additions
---                   | | | +--- code changes with no API change
-version:             0.1.0
-synopsis:            Provides a Bluetooth interface between HERMIT and Armatus
-homepage:            http://www.ittc.ku.edu/csdl/fpg
-license:             BSD3
-license-file:        LICENSE
-author:              Ryan Scott
--- copyright:           
-category:            Network
-build-type:          Simple
-extra-source-files:  examples/discover.hs
-cabal-version:       >=1.14
+-- PVP summary:         +-+------- breaking API changes
+--                      | | +----- non-breaking API additions
+--                      | | | +--- code changes with no API change
+version:                0.1.0
+synopsis:               Provides a Bluetooth interface between HERMIT and Armatus
+homepage:               http://www.ittc.ku.edu/csdl/fpg
+license:                BSD3
+license-file:           LICENSE
+author:                 Ryan Scott
+category:               Network
+build-type:             Custom
+extra-source-files:       include/bluez_utils.c
+                        , include/bluez_utils.h
+                        , lib/wsa_utils.dll
+cabal-version:          >=1.14
 
 library
-  exposed-modules:      HERMIT.Bluetooth.Adapter
-  other-modules:        HERMIT.Bluetooth.Types
+  exposed-modules:      HERMIT.Bluetooth
+  other-modules:        HERMIT.Bluetooth.Adapter
+                        HERMIT.Bluetooth.Types
   if os(windows)
     other-modules:      HERMIT.Bluetooth.Win32
   if os(macosx)
@@ -37,12 +39,13 @@ library
   default-language:     Haskell2010
   if os(windows)
     extra-libraries:    ws2_32
+                        wsa_utils
+--    extra-lib-dirs:     ${pkgroot}/lib {-# This doesn't work, see Setup.hs for workaround #-}
   if os(linux)
     extra-libraries:    bluetooth
-  include-dirs:         include
-  if os(linux)
     include-dirs:       /usr/include/glib-2.0
                         /usr/lib/glib-2.0/include
+                        include
     c-sources:          include/bluez_utils.c
   ghc-options:          -Wall
   
