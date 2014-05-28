@@ -8,6 +8,8 @@ import Network.Socket
 #if defined(mingw32_HOST_OS)
 import HERMIT.Bluetooth.Win32
 #elif defined(linux_HOST_OS)
+import Foreign.Ptr
+
 import HERMIT.Bluetooth.Linux
 #endif
 

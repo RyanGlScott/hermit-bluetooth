@@ -12,14 +12,11 @@ import Data.List
 import Data.Typeable
 import Data.Word
 
-import Foreign.C.Error
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Storable
-
-import HERMIT.Bluetooth.Types
 
 import Numeric
 
@@ -82,19 +79,6 @@ instance Storable BdAddr where
 
 data BluetoothException = BluetoothException String String deriving (Show, Typeable)
 instance Exception BluetoothException
-
-openDev :: CInt -> IO Adapter
-openDev dev_id = do
-    ret <- hci_open_dev dev_id
-    if ret < 0 then do
-        errno@(Errno errno_) <- getErrno
-        if errno == eINTR
-            then openDev dev_id
-            else do
-                err <- peekCString (strerror errno_)
-                throwIO $ BluetoothException "openDev" err
-      else
-        pure $ Adapter dev_id ret
 
 type CUInt16 = #{type uint16_t}
 

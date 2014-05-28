@@ -37,9 +37,8 @@ import HERMIT.Bluetooth.MacOSX
 import Control.Applicative
 import Control.Exception
 
-import Data.IORef
-
 import Foreign.C.String
+import Foreign.C.Types
 
 import HERMIT.Bluetooth.Linux
 #endif
@@ -71,6 +70,21 @@ bTPROTO_RFCOMM = #{const BTPROTO_RFCOMM}
     -- dev_ids <- reverse <$> readIORef devsRef
     -- mapM openDev dev_ids
 -- #endif
+
+#if defined(linux_HOST_OS)
+openDev :: CInt -> IO Adapter
+openDev dev_id = do
+    ret <- hci_open_dev dev_id
+    if ret < 0 then do
+        errno@(Errno errno_) <- getErrno
+        if errno == eINTR
+            then openDev dev_id
+            else do
+                err <- peekCString (strerror errno_)
+                throwIO $ BluetoothException "openDev" err
+      else
+        pure $ Adapter dev_id ret
+#endif
 
 defaultAdapter :: IO (Maybe Adapter)
 #if defined(mingw32_HOST_OS)
