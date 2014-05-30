@@ -46,6 +46,8 @@ executable hermit-bluetooth
   build-depends:        base >= 4 && < 5,
                         hermit,
                         hermit-bluetooth,
-                        network
+                        network,
+                        deepseq
   ghc-options:          -Wall
                         -optc-std=c99
+                        -threaded
