@@ -3,49 +3,51 @@ module Main where
 
 import Control.Concurrent
 import Control.Monad
-import HERMIT.Bluetooth.Adapter
+
+import HERMIT.Bluetooth
+
 import Network.Socket
 
-defaultPort :: Int
+backlog, defaultPort :: Int
+backlog = 1
 defaultPort = 3
 
+traceAction :: String -> IO a -> IO a
+traceAction = (>>) . putStrLn
+
 main :: IO ()
-main = defaultAdapter >>= \da -> case da of
+main = do
+    withSocketsDo $ defaultAdapter >>= \da -> case da of
             Nothing -> putStrLn "Error: cannot find Bluetooth adapter"
             Just _ -> do
-                putStrLn $ "sdp_register_service on port " ++ show defaultPort
-                sdpSession <- registerSDPService 0 defaultPort
+                traceAction "startupBluetoothService" startupBluetoothService
                 mvar <- newEmptyMVar
-                forkListenThread $ do
-                    putStrLn "socket()"
-                    handshakeSock <- socketRFCOMM
-                    putStrLn "bind()"
-                    bindRFCOMM handshakeSock defaultPort
-                    putStrLn "listen()"
-                    listenRFCOMM handshakeSock 1
-                    putStrLn "accept()"
-                    connSock <- acceptRFCOMM handshakeSock
-                    hermitLoop connSock sdpSession defaultPort mvar
+                _ <- forkIO $ do
+                    handshakeSock <- traceAction "socketRFCOMM" socketRFCOMM
+                    traceAction "bindRFCOMM" $ bindRFCOMM handshakeSock defaultPort
+                    traceAction "listenRFCOMM" $ listenRFCOMM handshakeSock backlog
+                    service <- traceAction ("registerBluetoothService (port " ++ show defaultPort ++ ")")
+                                    $ registerBluetoothService handshakeSock 0 defaultPort
+                    connSock <- traceAction "acceptRFCOMM" $ acceptRFCOMM handshakeSock
+                    hermitLoop handshakeSock connSock service defaultPort mvar
                 void $ takeMVar mvar
-
-forkListenThread :: IO () -> IO ()
-forkListenThread = void . forkIO
                 
-hermitLoop :: Socket -> SDPSession -> Int -> MVar Int -> IO ()
-hermitLoop sock sess port mvar = do
+hermitLoop :: Socket -> Socket -> BluetoothService -> Int -> MVar Int -> IO ()
+hermitLoop hSock cSock service port mvar = do
     putStr "recv: "
-    mm <- recv sock 4092
+    mm <- recv cSock 4092
     case mm of
          [] -> do
-             close sock
-             closeSDPSession sess
+             traceAction "close connection socket" $ close cSock
+             traceAction "closeBluetoothService" $ closeBluetoothService service
+             traceAction "close handshakeSock socket" $ close hSock
+             traceAction "cleanupBluetoothService" cleanupBluetoothService
              putMVar mvar port
          message -> do
              putStrLn message
              let !response = hermitMagic message
-             putStrLn $ "send: " ++ response
-             _ <- send sock response
-             hermitLoop sock sess port mvar
+             _ <- traceAction ("send: " ++ response) $ send cSock response
+             hermitLoop hSock cSock service port mvar
 
 -- Fill in these trivial details later ;)
 hermitMagic :: String -> String
