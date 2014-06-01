@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, LambdaCase #-}
 module Main where
 
 import Control.Concurrent
@@ -7,6 +7,8 @@ import Control.Monad
 import HERMIT.Bluetooth
 
 import Network.Socket
+
+import System.IO
 
 backlog, defaultPort :: Int
 backlog = 1
@@ -17,7 +19,7 @@ traceAction = (>>) . putStrLn
 
 main :: IO ()
 main = do
-    withSocketsDo $ defaultAdapter >>= \da -> case da of
+    withSocketsDo $ hSetBuffering stdout NoBuffering >> defaultAdapter >>= \case
             Nothing -> putStrLn "Error: cannot find Bluetooth adapter"
             Just _ -> do
                 traceAction "startupBluetoothService" startupBluetoothService
