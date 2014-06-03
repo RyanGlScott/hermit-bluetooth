@@ -9,6 +9,7 @@ module HERMIT.Bluetooth.Adapter (
     , bindRFCOMM
     , listenRFCOMM
     , acceptRFCOMM
+    , mAX_CONNECTIONS
 
     , Adapter
     , BluetoothService(..)
