@@ -58,3 +58,4 @@ executable hermit-bluetooth
                         hermit-bluetooth,
                         network
   ghc-options:          -Wall
+                        -threaded

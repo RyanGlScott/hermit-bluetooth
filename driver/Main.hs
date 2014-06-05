@@ -31,17 +31,19 @@ main = do
             Just _ -> do
                 broadcast <- newChan
                 uuids     <- newChan
-                mapM_ (writeChan uuids) [0] --[0..mAX_CONNECTIONS-1]
+                mapM_ (writeChan uuids) [0..mAX_CONNECTIONS-1]
 
                 traceAction "startupBluetoothService" startupBluetoothService
                 handshakeSock <- traceAction "socketRFCOMM" socketRFCOMM
+                traceAction "setSocketOption" $ setSocketOption handshakeSock ReuseAddr 1
                 traceAction "bindRFCOMM" $ bindRFCOMM handshakeSock defaultPort
                 traceAction "listenRFCOMM" $ listenRFCOMM handshakeSock backlog
 
                 forkIO $ mainLoop handshakeSock broadcast uuids
                 -- this uses the main thread to college garbage written to threads
+                broadcast' <- dupChan broadcast
                 fix $ \loop -> do 
-                  msg <- readChan broadcast
+                  msg <- readChan broadcast'
                   putStrLn $ "Broadcasted: " ++ msg
                   loop
                 
@@ -52,10 +54,17 @@ mainLoop handshakeSock chan uuids = do
   -- register the port before accepting anything 
   service <- traceAction ("registerBluetoothService (port " ++ show defaultPort ++ ")")
                $ registerBluetoothService handshakeSock id defaultPort
-  connSock <- traceAction "acceptRFCOMM" $ acceptRFCOMM handshakeSock   
-  putStrLn "Accepted new device"
+  connSock <- traceAction "connect using acceptRFCOMM" $ connect handshakeSock 
   forkIO $ hermitLoop connSock chan uuids' id service
   mainLoop handshakeSock chan uuids
+  where
+    connect sock = do 
+      clientSock <- acceptRFCOMM handshakeSock
+      case clientSock of 
+        Nothing -> threadDelay 1000 >> connect handshakeSock
+        Just connSock -> do
+          putStrLn "Accepted new device"
+          return connSock
 
 
 hermitLoop :: Socket -> Chan String -> Chan Int -> Int -> BluetoothService -> IO ()
@@ -65,7 +74,7 @@ hermitLoop sock broadChan uuids id service = do
     -- loop that handles sending messages to the attached device
     reader <- forkIO $ fix $ \loop -> do
       !msg <- readChan comChan
-      traceAction ("send " ++ msg) $ send sock msg
+      send sock msg
       loop
     -- receives messages from device, writes them to the broadcast channel
     handle (\(SomeException _) -> return ()) $ fix $ \loop -> do

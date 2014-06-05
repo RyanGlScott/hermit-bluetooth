@@ -165,19 +165,23 @@ bindRFCOMM (MkSocket s _ _ _ socketStatus) _port = do
         return Bound
 
 listenRFCOMM :: Socket -> Int -> IO ()
-listenRFCOMM (MkSocket s _family _stype _protocol socketStatus) backlog = do
+listenRFCOMM (MkSocket s _family _stype _protocol socketStatus) backlog = 
     modifyMVar_ socketStatus $ \ status -> do
         M.when (status /= Bound) $ ioError $ userError $ "listenRFCOMM: can't peform listen on socket in status " ++ show status
         _ <- throwErrnoIfMinus1 "listenRFCOMM" $ listen_rfcomm (fromIntegral s) (fromIntegral backlog)
         return Listening
 
-acceptRFCOMM :: Socket -> IO Socket
-acceptRFCOMM (MkSocket s family stype protocol socketStatus) = do
+acceptRFCOMM :: Socket -> IO (Maybe Socket)
+acceptRFCOMM sock@(MkSocket s family stype protocol socketStatus) = do
     status <- readMVar socketStatus
     M.when (status /= Listening) $ ioError $ userError $ "acceptRFCOMM: can't perform accept on socket in status" ++ show status
-    new_sock <- throwErrnoIfMinus1 "acceptRFCOMM" $ accept_rfcomm $ fromIntegral s
+    new_sock <- accept_rfcomm $ fromIntegral s
+    if new_sock == -1
+    then return Nothing
+    else do
 #if defined(mingw32_HOST_OS)
-    M.when (new_sock == iNVALID_SOCKET) $ ioError $ userError "acceptRFCOMM: invalid socket"
+      M.when (new_sock == iNVALID_SOCKET) $ ioError $ userError "acceptRFCOMM: invalid socket"
 #endif
-    new_status <- newMVar Connected
-    return $ MkSocket (fromIntegral new_sock) family stype protocol new_status
+      new_status <- newMVar Connected
+      return $ Just $ MkSocket (fromIntegral new_sock) family stype protocol new_status
+

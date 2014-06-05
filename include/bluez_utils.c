@@ -3,10 +3,12 @@
 #include <bluetooth/sdp.h>
 #include <bluetooth/sdp_lib.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 #include "bluez_utils.h"
 
 #define NUM_UUID_WORDS 4
 #define NUM_UUIDS 7
+
 
 /*
  * A 128-bit number used to identify this service. The words are ordered from most to least
@@ -131,7 +133,9 @@ sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfco
 }
 
 int socket_rfcomm() {
-    return socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+    int sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+    fcntl(sock, F_SETFL, O_NONBLOCK);
+    return sock;
 }
 
 int bind_rfcomm(int fd, uint8_t port) {
