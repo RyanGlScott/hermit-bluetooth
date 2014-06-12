@@ -43,9 +43,7 @@ library
 --    extra-lib-dirs:     ${pkgroot}/lib {-# This doesn't work, see Setup.hs for workaround #-}
   if os(linux)
     extra-libraries:    bluetooth
-    include-dirs:       /usr/include/glib-2.0
-                        /usr/lib/glib-2.0/include
-                        include
+    include-dirs:       include
     c-sources:          include/bluez_utils.c
   ghc-options:          -Wall
   
