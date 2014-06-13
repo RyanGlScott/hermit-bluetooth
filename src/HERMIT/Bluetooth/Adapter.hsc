@@ -116,10 +116,15 @@ registerBluetoothService :: Socket -> Int -> Int -> IO BluetoothService
 #if defined(mingw32_HOST_OS)
 registerBluetoothService (MkSocket s _ _ _ _) index _ = do
     wqs <- wsa_register_service (fromIntegral s) safeIndex
-    M.when (wqs == nullPtr) $ ioError $ userError "registerBluetoothService: service registration failed"
+    M.when (wqs == nullPtr) $ ioError $ userError "registerBluetoothService: service registration failed."
     return $ BluetoothService wqs
 #elif defined(linux_HOST_OS)
-registerBluetoothService _ index port = fmap BluetoothService $ sdp_register_service safeIndex (fromIntegral port)
+registerBluetoothService _ index port = do
+    sess <- sdp_register_service safeIndex (fromIntegral port)
+    M.when (sess == nullPtr) $ ioError $ userError $ "registerBluetoothService: service registration failed. "
+                                                     ++ "You may need to run hermit-bluetooth with elevated permissions "
+                                                     ++ "(e.g., sudo hermit-bluetooth)."
+    return $ BluetoothService sess
 #endif
     where safeIndex | 0 <= index && index < mAX_CONNECTIONS = fromIntegral index
                     | otherwise = 0

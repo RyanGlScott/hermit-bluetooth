@@ -116,17 +116,21 @@ sdp_session_t *sdp_register_service(const uint8_t uuid_index, const uint8_t rfco
     // connect to the local SDP server, register the service record,
     // and disconnect
     session = sdp_connect(BDADDR_ANY, BDADDR_LOCAL, SDP_RETRY_IF_BUSY);
-    sdp_record_register(session, &record, 0);
 
-    // cleanup
-    sdp_data_free(channel);
-    sdp_list_free(l2cap_list, 0);
-    sdp_list_free(rfcomm_list, 0);
-    sdp_list_free(root_list, 0);
-    sdp_list_free(access_proto_list, 0);
-    sdp_list_free(svc_class_list, 0);
-    sdp_list_free(profile_list, 0);
+    if (session != NULL) {
+        sdp_record_register(session, &record, 0);
 
+        // cleanup
+        sdp_data_free(channel);
+        sdp_list_free(l2cap_list, 0);
+        sdp_list_free(rfcomm_list, 0);
+        sdp_list_free(root_list, 0);
+        sdp_list_free(access_proto_list, 0);
+        sdp_list_free(svc_class_list, 0);
+        sdp_list_free(profile_list, 0);
+        return session;
+    }
+    
     return session;
 }
 
@@ -139,7 +143,7 @@ int bind_rfcomm(int fd, uint8_t port) {
     loc_addr.rc_family = AF_BLUETOOTH;
     loc_addr.rc_bdaddr = *BDADDR_ANY;
     loc_addr.rc_channel = port;
-    
+
     return bind(fd, (struct sockaddr *)&loc_addr, sizeof(loc_addr));
 }
 
@@ -150,6 +154,6 @@ int listen_rfcomm(int fd, int n) {
 int accept_rfcomm(int fd) {
     struct sockaddr_rc rem_addr = { 0 };
     socklen_t opt = sizeof(rem_addr);
-    
+
     return accept(fd, (struct sockaddr *)&rem_addr, &opt);
 }
